@@ -68,3 +68,4 @@ Release/
 msbuild.log
 msbuild.err
 msbuild.wrn
+.qodo

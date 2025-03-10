@@ -33,7 +33,7 @@ struct ContentView: View {
   @State private var board: [[String]] = Array(repeating: Array(repeating: "", count: 3), count: 3)
   @State private var currentPlayer: String = "X"
   @State private var winner: String? = nil
-  @State private var consecutivesWins: Int = 0
+  @State private var highestConsecutivesWins: Int = 1
   @State private var isFirstAIMove: Bool = true
   // Não consigo passar do nivel 5. D:
   @State private var depthLimit: Int = 5  // Limite de profundidade para a IA (menor = mais fácil)
@@ -44,11 +44,11 @@ struct ContentView: View {
         .font(.title)
         .foregroundStyle(Color(hex: "#0e0e0e"))
 
-      Text("Vitórias seguidas: \(consecutivesWins)")
+      Text("Nivel: \(depthLimit - 4)")
         .font(.headline)
         .foregroundStyle(Color(hex: "#0e0e0e"))
 
-      Text("Nivel de dificuldade: \(depthLimit - 4)")
+      Text("Maior nível: \(highestConsecutivesWins)")
         .font(.headline)
         .foregroundStyle(Color(hex: "#0e0e0e"))
 
@@ -65,7 +65,7 @@ struct ContentView: View {
                 .foregroundStyle(Color(hex: "#0e0e0e"))
             }
             .disabled(board[row][col] != "" || winner != nil)
-            .background(Color(hex: "#efefff"))
+            .background(Color(hex: "#f5f5ff"))
             .shadow(radius: 3)
           }
         }
@@ -110,7 +110,7 @@ struct ContentView: View {
     if checkWinner(player: currentPlayer) {
       if currentPlayer == "X" {
         winner = currentPlayer
-        consecutivesWins += 1
+        highestConsecutivesWins += 1
         depthLimit += 1
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {  // Pequeno atraso antes de começar um novo jogo.
           resetGame()
@@ -286,7 +286,6 @@ struct ContentView: View {
     board = Array(repeating: Array(repeating: "", count: 3), count: 3)
     currentPlayer = "X"
     winner = nil
-    consecutivesWins = 0
     depthLimit = 5
     isFirstAIMove = true
   }
