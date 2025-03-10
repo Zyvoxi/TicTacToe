@@ -1,11 +1,87 @@
 //
 //  ContentView.swift
-//  TicTacToe
+//  TicTacToe IOS
 //
-//  Created by IV. on 09/03/25.
+//  Created by IV. on 10/03/25.
 //
 
+import CoreHaptics
 import SwiftUI
+
+class HapticManager: ObservableObject {
+  private var engine: CHHapticEngine?
+
+  init() {
+    prepareHaptics()
+  }
+
+  private func prepareHaptics() {
+    guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else {
+      print("❌ Haptics não suportado!")
+      return
+    }
+    do {
+      engine = try CHHapticEngine()
+      try engine?.start()
+    } catch {
+      print("⚠️ Erro ao iniciar o motor de Haptics: \(error.localizedDescription)")
+    }
+  }
+
+  func playWinHaptic() {
+    guard let engine = engine else {
+      print("❌ Haptic Engine não disponível.")
+      return
+    }
+
+    do {
+      var events = [CHHapticEvent]()
+
+      // Série de pequenos bursts iniciais
+      for i in 0..<3 {
+        let burstIntensity = CHHapticEventParameter(
+          parameterID: .hapticIntensity, value: 0.6 + Float(i) * 0.1)
+        let burstSharpness = CHHapticEventParameter(
+          parameterID: .hapticSharpness, value: 0.5 + Float(i) * 0.1)
+        let burstEvent = CHHapticEvent(
+          eventType: .hapticTransient,
+          parameters: [burstIntensity, burstSharpness],
+          relativeTime: TimeInterval(i) * 0.05  // espaçamento entre bursts
+        )
+        events.append(burstEvent)
+      }
+
+      // Evento contínuo para prolongar a sensação de vitória
+      let continuousIntensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.8)
+      let continuousSharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.7)
+      let continuousEvent = CHHapticEvent(
+        eventType: .hapticContinuous,
+        parameters: [continuousIntensity, continuousSharpness],
+        relativeTime: 0.2,
+        duration: 0.2
+      )
+      events.append(continuousEvent)
+
+      // Burst final mais impactante para fechar o efeito
+      let finalIntensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0)
+      let finalSharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 1.0)
+      let finalEvent = CHHapticEvent(
+        eventType: .hapticTransient,
+        parameters: [finalIntensity, finalSharpness],
+        relativeTime: 0.5
+      )
+      events.append(finalEvent)
+
+      // Cria o padrão e toca o haptic
+      let pattern = try CHHapticPattern(events: events, parameters: [])
+      let player = try engine.makePlayer(with: pattern)
+
+      try player.start(atTime: 0)
+    } catch {
+      print("⚠️ Erro ao reproduzir haptic: \(error.localizedDescription)")
+    }
+  }
+}
 
 extension Color {
   init(hex: String) {
@@ -30,6 +106,7 @@ extension Color {
 }
 
 struct ContentView: View {
+  @StateObject private var hapticManager = HapticManager()
   @State private var board: [[String]] = Array(repeating: Array(repeating: "", count: 3), count: 3)
   @State private var currentPlayer: String = "X"
   @State private var winner: String? = nil
@@ -110,7 +187,8 @@ struct ContentView: View {
     if checkWinner(player: currentPlayer) {
       if currentPlayer == "X" {
         winner = currentPlayer
-        if depthLimit - 4 > highestConsecutivesWins {
+        hapticManager.playWinHaptic()
+        if depthLimit - 4 >= highestConsecutivesWins {
           highestConsecutivesWins += 1
         }
         depthLimit += 1
